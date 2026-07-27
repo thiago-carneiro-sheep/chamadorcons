@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acesso — Chamada de Pacientes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10262A;
+    --paper:#EFF3F2;
+    --paper-raised:#FFFFFF;
+    --line:#D3DEDC;
+    --mint:#1F6F5C;
+    --mint-soft:#DCEEE8;
+    --amber:#F4A93B;
+    --amber-deep:#C77E12;
+    --red:#C0453A;
+    --muted:#5C716E;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Manrope',sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .card{
+    width:100%;
+    max-width:380px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:38px 34px;
+    box-shadow:0 10px 30px rgba(16,38,42,.06);
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:28px;
+  }
+  .brand .mark{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.14em;
+    color:var(--mint);
+    border:1.5px solid var(--mint);
+    padding:3px 7px;
+    border-radius:4px;
+  }
+  .brand span.title{
+    font-weight:800;
+    font-size:15px;
+    letter-spacing:-.01em;
+  }
+  h1{
+    font-size:22px;
+    margin:0 0 6px 0;
+    font-weight:800;
+  }
+  p.sub{
+    margin:0 0 26px 0;
+    font-size:13.5px;
+    color:var(--muted);
+  }
+  label{
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:block;
+    margin-bottom:7px;
+  }
+  .field{ margin-bottom:18px; }
+  input{
+    width:100%;
+    padding:14px 15px;
+    font-size:16px;
+    font-family:'Manrope',sans-serif;
+    font-weight:600;
+    border:2px solid var(--line);
+    border-radius:9px;
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  input:focus{border-color:var(--mint); background:var(--paper-raised);}
+  .enter-btn{
+    width:100%;
+    margin-top:6px;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    background:var(--amber);
+    color:#2B1B02;
+    font-family:'Manrope',sans-serif;
+    font-weight:800;
+    font-size:15.5px;
+    cursor:pointer;
+    transition:transform .08s, background .15s;
+    box-shadow:0 3px 0 var(--amber-deep);
+  }
+  .enter-btn:active{transform:translateY(3px);box-shadow:0 0 0 var(--amber-deep);}
+  .enter-btn:hover{background:#f7b959;}
+  .error{
+    display:none;
+    margin-top:14px;
+    padding:10px 13px;
+    background:#FBEAE8;
+    border:1px solid #EFC6C1;
+    border-radius:8px;
+    color:var(--red);
+    font-size:13px;
+    font-weight:600;
+  }
+  .error.show{display:block;}
+  .shake{ animation:shake .35s; }
+  @keyframes shake{
+    20%,60%{transform:translateX(-6px);}
+    40%,80%{transform:translateX(6px);}
+  }
+</style>
+</head>
+<body>
+
+<div class="card" id="card">
+  <div class="brand">
+    <span class="mark">CP</span>
+    <span class="title">Chamada de Pacientes</span>
+  </div>
+  <h1>Acesso restrito</h1>
+  <p class="sub">Entre com sua conta para abrir a tela correspondente.</p>
+
+  <form id="loginForm" autocomplete="off">
+    <div class="field">
+      <label for="user">Usuário</label>
+      <input type="text" id="user" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="pass">Senha</label>
+      <input type="password" id="pass" autocomplete="off">
+    </div>
+    <button type="submit" class="enter-btn">Entrar</button>
+    <div class="error" id="error">Usuário ou senha incorretos.</div>
+  </form>
+</div>
+
+<script>
+  const ACCOUNTS = [
+    { user: 'medicos',  pass: 'Med123',   redirect: 'chamador.html', flag: 'cp_auth_chamador' },
+    { user: 'recepcao', pass: 'recep123', redirect: 'chamada.html',  flag: 'cp_auth_chamada'  },
+  ];
+
+  const form = document.getElementById('loginForm');
+  const card = document.getElementById('card');
+  const errorBox = document.getElementById('error');
+
+  form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const user = document.getElementById('user').value.trim();
+    const pass = document.getElementById('pass').value;
+
+    const match = ACCOUNTS.find(a => a.user === user && a.pass === pass);
+
+    if(match){
+      sessionStorage.setItem(match.flag, '1');
+      window.location.href = match.redirect;
+    } else {
+      errorBox.classList.add('show');
+      card.classList.remove('shake');
+      void card.offsetWidth;
+      card.classList.add('shake');
+    }
+  });
+</script>
+
+</body>
+</html>
