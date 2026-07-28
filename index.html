@@ -83,6 +83,27 @@
     margin-bottom:7px;
   }
   .field{ margin-bottom:18px; }
+  .pass-wrap{
+    position:relative;
+  }
+  .pass-wrap input{
+    padding-right:46px;
+  }
+  .eye-btn{
+    position:absolute;
+    right:6px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-size:17px;
+    padding:8px;
+    line-height:1;
+    color:var(--muted);
+    opacity:.7;
+  }
+  .eye-btn:hover{ opacity:1; }
   input{
     width:100%;
     padding:14px 15px;
@@ -150,7 +171,10 @@
     </div>
     <div class="field">
       <label for="pass">Senha</label>
-      <input type="password" id="pass" autocomplete="off">
+      <div class="pass-wrap">
+        <input type="password" id="pass" autocomplete="off">
+        <button type="button" class="eye-btn" id="eyeBtn" title="Mostrar senha" aria-label="Mostrar senha">👁</button>
+      </div>
     </div>
     <button type="submit" class="enter-btn">Entrar</button>
     <div class="error" id="error">Usuário ou senha incorretos.</div>
@@ -165,6 +189,15 @@
     { user: 'farmacia',    pass: 'farm123',   redirect: 'chamadorfarmacia.html',flag: 'cp_auth_chamadorfarmacia'},
     { user: 'odonto',      pass: 'odonto123', redirect: 'chamadorodonto.html',  flag: 'cp_auth_chamadorodonto'  },
   ];
+
+  const eyeBtn = document.getElementById('eyeBtn');
+  const passInput = document.getElementById('pass');
+  eyeBtn.addEventListener('click', ()=>{
+    const isHidden = passInput.type === 'password';
+    passInput.type = isHidden ? 'text' : 'password';
+    eyeBtn.textContent = isHidden ? '🙈' : '👁';
+    eyeBtn.title = isHidden ? 'Ocultar senha' : 'Mostrar senha';
+  });
 
   const form = document.getElementById('loginForm');
   const card = document.getElementById('card');
