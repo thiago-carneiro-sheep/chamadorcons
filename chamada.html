@@ -225,6 +225,7 @@
   <div style="display:flex; align-items:center; gap:16px;">
     <div class="clock" id="clock">--:--</div>
     <div class="status"><span class="dot" id="dot"></span><span id="statusText">conectando…</span></div>
+    <button class="gear" id="soundBtn" title="Ativar áudio" style="color:var(--amber); border:1px solid var(--amber); font-size:12px; padding:6px 10px;">🔈 Ativar áudio</button>
     <button class="gear" id="castBtn" title="Espelhar na TV">📺</button>
     <button class="gear" id="fullscreenBtn" title="Tela inteira">⛶</button>
     <button class="gear" id="gearBtn">⚙</button>
@@ -263,7 +264,7 @@
   <h2>Últimas chamadas</h2>
   <div class="board" id="board"><span style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Nenhuma chamada ainda.</span></div>
   <div style="margin-top:14px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); opacity:.7;">
-    Versão 1.004 — Desenvolvido e programado por Thiago Carneiro de Oliveira
+    Versão 1.005 — Desenvolvido e programado por Thiago Carneiro de Oliveira
   </div>
 </footer>
 
@@ -462,13 +463,28 @@
     playOnce();
   }
 
-  // desbloqueia a reprodução de áudio em navegadores que exigem interação do usuário
-  document.body.addEventListener('click', ()=>{
+  // desbloqueia a reprodução de áudio — precisa ser clicado depois de cada carregamento da página
+  const soundBtn = document.getElementById('soundBtn');
+  let soundUnlocked = false;
+  function unlockSound(){
     ttsAudio.muted = true;
-    ttsAudio.play().catch(()=>{});
-    ttsAudio.pause();
-    ttsAudio.muted = false;
-  }, {once:true});
+    ttsAudio.play().then(()=>{
+      ttsAudio.pause();
+      ttsAudio.muted = false;
+      soundUnlocked = true;
+      soundBtn.textContent = '🔊 Áudio ativado';
+      soundBtn.style.color = 'var(--mint)';
+      soundBtn.style.borderColor = 'var(--mint)';
+    }).catch(()=>{
+      ttsAudio.muted = false;
+      soundBtn.textContent = '🔈 Tentar novamente';
+    });
+  }
+  soundBtn.addEventListener('click', unlockSound);
+  document.body.addEventListener('click', function firstClick(){
+    unlockSound();
+    document.body.removeEventListener('click', firstClick);
+  });
 </script>
 
 </body>
