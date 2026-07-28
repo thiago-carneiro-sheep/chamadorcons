@@ -441,15 +441,37 @@
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  let cachedVoices = [];
+  function loadVoices(){ cachedVoices = speechSynthesis.getVoices(); }
+  if('speechSynthesis' in window){
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  function pickVoice(){
+    if(cachedVoices.length === 0) cachedVoices = speechSynthesis.getVoices();
+    // Prioriza voz "de rede" (Google), que toca pelo próprio navegador —
+    // voz local do sistema operacional costuma não ser capturada ao transmitir a aba pro Chromecast.
+    return (
+      cachedVoices.find(v => v.lang === 'pt-BR' && !v.localService) ||
+      cachedVoices.find(v => v.lang.startsWith('pt') && !v.localService) ||
+      cachedVoices.find(v => v.lang === 'pt-BR') ||
+      cachedVoices.find(v => v.lang.startsWith('pt')) ||
+      null
+    );
+  }
+
   function speak(nome, room, repeticoes){
     if(!('speechSynthesis' in window)) return;
     const reps = repeticoes || 2;
     const text = `Paciente ${nome}, dirija-se para ${room}, por favor.`;
+    const voice = pickVoice();
     let count = 0;
     function say(){
       if(count >= reps) return;
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'pt-BR';
+      if(voice) utter.voice = voice;
       utter.rate = 0.95;
       utter.onend = ()=>{ count++; if(count < reps) setTimeout(say, 600); };
       speechSynthesis.speak(utter);
