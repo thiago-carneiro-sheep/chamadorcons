@@ -232,6 +232,8 @@
   </div>
 </header>
 
+<audio id="ttsAudio" style="display:none;"></audio>
+
 <div class="code-row" id="codeRow">
   <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--mint);">Código da unidade:</span>
   <input type="text" id="codeInput">
@@ -441,50 +443,28 @@
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  let cachedVoices = [];
-  function loadVoices(){ cachedVoices = speechSynthesis.getVoices(); }
-  if('speechSynthesis' in window){
-    loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
-  }
-
-  function pickVoice(){
-    if(cachedVoices.length === 0) cachedVoices = speechSynthesis.getVoices();
-    // Prioriza voz "de rede" (Google), que toca pelo próprio navegador —
-    // voz local do sistema operacional costuma não ser capturada ao transmitir a aba pro Chromecast.
-    return (
-      cachedVoices.find(v => v.lang === 'pt-BR' && !v.localService) ||
-      cachedVoices.find(v => v.lang.startsWith('pt') && !v.localService) ||
-      cachedVoices.find(v => v.lang === 'pt-BR') ||
-      cachedVoices.find(v => v.lang.startsWith('pt')) ||
-      null
-    );
-  }
+  const ttsAudio = document.getElementById('ttsAudio');
 
   function speak(nome, room, repeticoes){
-    if(!('speechSynthesis' in window)) return;
     const reps = repeticoes || 2;
     const text = `Paciente ${nome}, dirija-se para ${room}, por favor.`;
-    const voice = pickVoice();
+    const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=pt-BR&client=tw-ob&q=' + encodeURIComponent(text);
     let count = 0;
-    function say(){
+    function playOnce(){
       if(count >= reps) return;
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'pt-BR';
-      if(voice) utter.voice = voice;
-      utter.rate = 0.95;
-      utter.onend = ()=>{ count++; if(count < reps) setTimeout(say, 600); };
-      speechSynthesis.speak(utter);
+      ttsAudio.src = url;
+      ttsAudio.play().catch(()=>{});
     }
-    speechSynthesis.cancel();
-    say();
+    ttsAudio.onended = ()=>{ count++; if(count < reps) setTimeout(playOnce, 600); };
+    playOnce();
   }
 
-  // desbloqueia a síntese de voz em navegadores que exigem interação do usuário
+  // desbloqueia a reprodução de áudio em navegadores que exigem interação do usuário
   document.body.addEventListener('click', ()=>{
-    if('speechSynthesis' in window && speechSynthesis.getVoices().length === 0){
-      speechSynthesis.speak(new SpeechSynthesisUtterance(''));
-    }
+    ttsAudio.muted = true;
+    ttsAudio.play().catch(()=>{});
+    ttsAudio.pause();
+    ttsAudio.muted = false;
   }, {once:true});
 </script>
 
