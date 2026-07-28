@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Painel do Consultório — Chamada de Pacientes</title>
+<title>Painel de Enfermagem — Chamada de Pacientes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script>
-  if(sessionStorage.getItem('cp_auth_chamador') !== '1'){
+  if(sessionStorage.getItem('cp_auth_chamadorenf') !== '1'){
     window.location.href = 'index.html';
   }
 </script>
@@ -275,8 +275,8 @@
 
 <header>
   <div class="brand">
-    <span class="mark">CP</span>
-    <h1>Chamada de Pacientes</h1>
+    <span class="mark">ENF</span>
+    <h1>Chamada de Pacientes — Enfermagem</h1>
   </div>
   <div style="display:flex; align-items:center; gap:14px;">
     <div class="status">
@@ -301,11 +301,13 @@
       <input type="text" id="nome" placeholder="Digite o nome" autocomplete="off">
     </div>
     <div>
-      <label>Consultório</label>
-      <div class="rooms">
-        <button class="room-btn active" data-room="Consultório 1">CONS. 1</button>
-        <button class="room-btn" data-room="Consultório 2">CONS. 2</button>
-        <button class="room-btn" data-room="Consultório 3">CONS. 3</button>
+      <label>Sala</label>
+      <div class="rooms" style="grid-template-columns:1fr;">
+        <button class="room-btn active" data-room="Sala de pré-consulta">Sala de pré-consulta</button>
+        <button class="room-btn" data-room="Sala de procedimentos">Sala de procedimentos</button>
+        <button class="room-btn" data-room="Sala de inalação">Sala de inalação</button>
+        <button class="room-btn" data-room="Sala de vacina">Sala de vacina</button>
+        <button class="room-btn" data-room="Consultório enfermagem">Consultório enfermagem</button>
       </div>
     </div>
     <button class="call-btn" id="callBtn">Chamar paciente</button>
@@ -323,7 +325,7 @@
   let codigo = localStorage.getItem(STORAGE_KEY) || 'clinica-01';
   document.getElementById('codeInput').value = codigo;
 
-  let selectedRoom = 'Consultório 1';
+  let selectedRoom = 'Sala de pré-consulta';
   document.querySelectorAll('.room-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('.room-btn').forEach(b=>b.classList.remove('active'));
@@ -363,7 +365,7 @@
   gearBtn.addEventListener('click', ()=> codeRow.classList.toggle('open'));
 
   document.getElementById('logoutBtn').addEventListener('click', ()=>{
-    sessionStorage.removeItem('cp_auth_chamador');
+    sessionStorage.removeItem('cp_auth_chamadorenf');
     window.location.href = 'index.html';
   });
   document.getElementById('codeSave').addEventListener('click', ()=>{
