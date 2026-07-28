@@ -329,21 +329,13 @@
   });
 
   const castBtn = document.getElementById('castBtn');
-  if('PresentationRequest' in window){
-    const presentationRequest = new PresentationRequest([window.location.href]);
-    navigator.presentation.defaultRequest = presentationRequest;
-    castBtn.addEventListener('click', async ()=>{
-      try{
-        await presentationRequest.start();
-      }catch(e){
-        alert('Não foi possível encontrar uma TV para espelhar.\n\nVerifique se há um Chromecast ou Google TV/Android TV ligado na mesma rede Wi-Fi.');
-      }
-    });
-  } else {
-    castBtn.addEventListener('click', ()=>{
-      alert('Seu navegador não permite espelhar direto por aqui.\n\nAlternativas:\n• Chrome (computador): menu ⋮ no canto superior direito → "Transmitir..."\n• Safari / iPhone / Mac: use o ícone AirPlay na barra do navegador\n• Ou conecte um cabo HDMI direto na TV.');
-    });
-  }
+  castBtn.addEventListener('click', ()=>{
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    const msg = isMobile
+      ? 'Para espelhar nesta TV, use o mesmo recurso que você usa no YouTube:\n\n1. Toque no menu ⋮ do navegador\n2. Toque em "Cast" ou "Transmitir"\n3. Escolha a TV\n\nO celular vai espelhar a tela até você parar a transmissão.'
+      : 'Para espelhar nesta TV, use o mesmo recurso que você usa no YouTube:\n\n1. Clique no menu ⋮ no canto superior direito do Chrome\n2. Clique em "Transmitir..." (ou no ícone de Cast na barra de endereço)\n3. Escolha a TV e selecione "Transmitir guia" (Cast tab)\n\nA aba vai aparecer espelhada na TV.';
+    alert(msg);
+  });
 
   document.getElementById('logoutBtn').addEventListener('click', ()=>{
     sessionStorage.removeItem('cp_auth_chamada');
