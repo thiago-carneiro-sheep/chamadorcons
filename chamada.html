@@ -224,6 +224,7 @@
   <div style="display:flex; align-items:center; gap:16px;">
     <div class="clock" id="clock">--:--</div>
     <div class="status"><span class="dot" id="dot"></span><span id="statusText">conectando…</span></div>
+    <button class="gear" id="fullscreenBtn" title="Tela inteira">⛶</button>
     <button class="gear" id="gearBtn">⚙</button>
     <button class="gear" id="logoutBtn" style="font-size:12px;">Sair</button>
   </div>
@@ -302,6 +303,19 @@
   const gearBtn = document.getElementById('gearBtn');
   const codeRow = document.getElementById('codeRow');
   gearBtn.addEventListener('click', ()=> codeRow.classList.toggle('open'));
+
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
+  fullscreenBtn.addEventListener('click', ()=>{
+    if(!document.fullscreenElement){
+      document.documentElement.requestFullscreen().catch(()=>{});
+    } else {
+      document.exitFullscreen().catch(()=>{});
+    }
+  });
+  document.addEventListener('fullscreenchange', ()=>{
+    fullscreenBtn.textContent = document.fullscreenElement ? '⤢' : '⛶';
+    fullscreenBtn.title = document.fullscreenElement ? 'Sair da tela inteira' : 'Tela inteira';
+  });
 
   document.getElementById('logoutBtn').addEventListener('click', ()=>{
     sessionStorage.removeItem('cp_auth_chamada');
