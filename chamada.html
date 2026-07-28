@@ -225,15 +225,12 @@
   <div style="display:flex; align-items:center; gap:16px;">
     <div class="clock" id="clock">--:--</div>
     <div class="status"><span class="dot" id="dot"></span><span id="statusText">conectando…</span></div>
-    <button class="gear" id="soundBtn" title="Ativar áudio" style="color:var(--amber); border:1px solid var(--amber); font-size:12px; padding:6px 10px;">🔈 Ativar áudio</button>
     <button class="gear" id="castBtn" title="Espelhar na TV">📺</button>
     <button class="gear" id="fullscreenBtn" title="Tela inteira">⛶</button>
     <button class="gear" id="gearBtn">⚙</button>
     <button class="gear" id="logoutBtn" style="font-size:12px;">Sair</button>
   </div>
 </header>
-
-<audio id="ttsAudio" style="display:none;"></audio>
 
 <div class="code-row" id="codeRow">
   <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--mint);">Código da unidade:</span>
@@ -264,7 +261,7 @@
   <h2>Últimas chamadas</h2>
   <div class="board" id="board"><span style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Nenhuma chamada ainda.</span></div>
   <div style="margin-top:14px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); opacity:.7;">
-    Versão 1.005 — Desenvolvido e programado por Thiago Carneiro de Oliveira
+    Versão 1.006 — Desenvolvido e programado por Thiago Carneiro de Oliveira
   </div>
 </footer>
 
@@ -447,44 +444,29 @@
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  const ttsAudio = document.getElementById('ttsAudio');
-
   function speak(nome, room, repeticoes){
+    if(!('speechSynthesis' in window)) return;
     const reps = repeticoes || 2;
     const text = `Paciente ${nome}, dirija-se para ${room}, por favor.`;
-    const url = 'https://translate.google.com/translate_tts?ie=UTF-8&tl=pt-BR&client=tw-ob&q=' + encodeURIComponent(text);
     let count = 0;
-    function playOnce(){
+    function say(){
       if(count >= reps) return;
-      ttsAudio.src = url;
-      ttsAudio.play().catch(()=>{});
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'pt-BR';
+      utter.rate = 0.95;
+      utter.onend = ()=>{ count++; if(count < reps) setTimeout(say, 600); };
+      speechSynthesis.speak(utter);
     }
-    ttsAudio.onended = ()=>{ count++; if(count < reps) setTimeout(playOnce, 600); };
-    playOnce();
+    speechSynthesis.cancel();
+    say();
   }
 
-  // desbloqueia a reprodução de áudio — precisa ser clicado depois de cada carregamento da página
-  const soundBtn = document.getElementById('soundBtn');
-  let soundUnlocked = false;
-  function unlockSound(){
-    ttsAudio.muted = true;
-    ttsAudio.play().then(()=>{
-      ttsAudio.pause();
-      ttsAudio.muted = false;
-      soundUnlocked = true;
-      soundBtn.textContent = '🔊 Áudio ativado';
-      soundBtn.style.color = 'var(--mint)';
-      soundBtn.style.borderColor = 'var(--mint)';
-    }).catch(()=>{
-      ttsAudio.muted = false;
-      soundBtn.textContent = '🔈 Tentar novamente';
-    });
-  }
-  soundBtn.addEventListener('click', unlockSound);
-  document.body.addEventListener('click', function firstClick(){
-    unlockSound();
-    document.body.removeEventListener('click', firstClick);
-  });
+  // desbloqueia a síntese de voz em navegadores que exigem interação do usuário
+  document.body.addEventListener('click', ()=>{
+    if('speechSynthesis' in window && speechSynthesis.getVoices().length === 0){
+      speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+    }
+  }, {once:true});
 </script>
 
 </body>
