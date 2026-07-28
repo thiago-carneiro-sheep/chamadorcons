@@ -239,8 +239,8 @@
 
 <div class="code-row" id="folderRow" style="flex-wrap:wrap;">
   <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--mint);">Log de chamadas:</span>
-  <button id="pickFolderBtn">Selecionar pasta Documentos</button>
-  <span id="folderStatus" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted);">pasta não conectada</span>
+  <button id="downloadLogBtn">Baixar log.txt</button>
+  <span id="folderStatus" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted);">0 chamadas registradas</span>
 </div>
 
 <main>
@@ -347,101 +347,44 @@
   const board = document.getElementById('board');
   let calls = [];
 
-  // ---- Log em arquivo (pasta "chamador/chamada.log") ----
+  // ---- Log de chamadas (guardado no navegador, nunca apaga o que já tem) ----
   const folderStatus = document.getElementById('folderStatus');
-  const pickFolderBtn = document.getElementById('pickFolderBtn');
-  let logFileHandle = null;
-  const fsSupported = 'showDirectoryPicker' in window;
+  const downloadLogBtn = document.getElementById('downloadLogBtn');
+  const LOG_KEY = 'cp_log_text';
+  const LOG_COUNT_KEY = 'cp_log_count';
 
-  function setFolderStatus(text){ folderStatus.textContent = text; }
-
-  function idbOpen(){
-    return new Promise((resolve, reject)=>{
-      const req = indexedDB.open('cp_fs_db', 1);
-      req.onupgradeneeded = ()=> req.result.createObjectStore('handles');
-      req.onsuccess = ()=> resolve(req.result);
-      req.onerror = ()=> reject(req.error);
-    });
-  }
-  async function idbGet(key){
-    const db = await idbOpen();
-    return new Promise((resolve, reject)=>{
-      const tx = db.transaction('handles', 'readonly');
-      const r = tx.objectStore('handles').get(key);
-      r.onsuccess = ()=> resolve(r.result);
-      r.onerror = ()=> reject(r.error);
-    });
-  }
-  async function idbSet(key, value){
-    const db = await idbOpen();
-    return new Promise((resolve, reject)=>{
-      const tx = db.transaction('handles', 'readwrite');
-      tx.objectStore('handles').put(value, key);
-      tx.oncomplete = ()=> resolve();
-      tx.onerror = ()=> reject(tx.error);
-    });
+  function getLogCount(){ return parseInt(localStorage.getItem(LOG_COUNT_KEY) || '0', 10); }
+  function updateLogStatus(){
+    folderStatus.textContent = getLogCount() + ' chamadas registradas';
   }
 
-  async function setupLogFolder(rootHandle){
-    const chamadorDir = await rootHandle.getDirectoryHandle('chamador', { create: true });
-    logFileHandle = await chamadorDir.getFileHandle('chamada.log', { create: true });
+  function appendLogEntry(nome, sala, ts){
+    const d = new Date(ts);
+    const data = d.toLocaleDateString('pt-BR');
+    const hora = d.toLocaleTimeString('pt-BR');
+    const linha = `[${data} ${hora}] ${nome} — ${sala}`;
+    const textoAtual = localStorage.getItem(LOG_KEY) || '';
+    const novoTexto = linha + '\n' + textoAtual;
+    localStorage.setItem(LOG_KEY, novoTexto);
+    localStorage.setItem(LOG_COUNT_KEY, String(getLogCount() + 1));
+    updateLogStatus();
   }
 
-  async function pickFolder(){
-    if(!fsSupported){
-      setFolderStatus('navegador não suporta (use Chrome ou Edge)');
-      return;
-    }
-    try{
-      const rootHandle = await window.showDirectoryPicker();
-      const perm = await rootHandle.requestPermission({ mode: 'readwrite' });
-      if(perm !== 'granted'){ setFolderStatus('permissão negada'); return; }
-      await setupLogFolder(rootHandle);
-      await idbSet('rootDir', rootHandle);
-      setFolderStatus('conectado: chamador/chamada.log');
-    }catch(e){
-      // usuário cancelou a seleção
-    }
+  function downloadLog(){
+    const texto = localStorage.getItem(LOG_KEY) || '';
+    const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'chamada.log';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
-  async function tryRestoreFolder(){
-    if(!fsSupported){ setFolderStatus('navegador não suporta (use Chrome ou Edge)'); return; }
-    try{
-      const rootHandle = await idbGet('rootDir');
-      if(!rootHandle){ setFolderStatus('pasta não conectada'); return; }
-      const perm = await rootHandle.queryPermission({ mode: 'readwrite' });
-      if(perm === 'granted'){
-        await setupLogFolder(rootHandle);
-        setFolderStatus('conectado: chamador/chamada.log');
-      }else{
-        setFolderStatus('clique para reconectar a pasta');
-      }
-    }catch(e){
-      setFolderStatus('pasta não conectada');
-    }
-  }
-
-  async function appendLogEntry(nome, sala, ts){
-    if(!logFileHandle) return;
-    try{
-      const file = await logFileHandle.getFile();
-      const textoAtual = await file.text();
-      const d = new Date(ts);
-      const data = d.toLocaleDateString('pt-BR');
-      const hora = d.toLocaleTimeString('pt-BR');
-      const linha = `[${data} ${hora}] ${nome} — ${sala}`;
-      const novoTexto = linha + '\n' + textoAtual;
-      const writable = await logFileHandle.createWritable();
-      await writable.write(novoTexto);
-      await writable.close();
-    }catch(e){
-      setFolderStatus('erro ao gravar — clique para reconectar');
-      logFileHandle = null;
-    }
-  }
-
-  pickFolderBtn.addEventListener('click', pickFolder);
-  tryRestoreFolder();
+  downloadLogBtn.addEventListener('click', downloadLog);
+  updateLogStatus();
 
   function handleCall(data){
     const nome = (data.nome || '').toString().trim();
