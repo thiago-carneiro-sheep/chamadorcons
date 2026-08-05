@@ -171,6 +171,34 @@
     font-size:12px;
     opacity:.75;
   }
+  .cat-rows{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .cat-row{
+    display:flex;
+    gap:8px;
+    align-items:stretch;
+  }
+  .cat-row .room-btn{
+    flex:1;
+  }
+  .reset-one-btn{
+    flex-shrink:0;
+    width:44px;
+    border-radius:10px;
+    border:2px solid var(--line);
+    background:var(--paper-raised);
+    color:var(--muted);
+    font-size:18px;
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .reset-one-btn:hover{
+    border-color:var(--red);
+    color:var(--red);
+  }
 
   .call-btn{
     margin-top:6px;
@@ -309,16 +337,28 @@
   <section class="panel">
     <div>
       <label>Categoria da senha</label>
-      <div class="rooms" style="grid-template-columns:1fr;" id="categoryList">
-        <button class="room-btn active" data-cat="Recepção">Recepção <span class="next-num" data-cat-num="Recepção">— próxima: 1</span></button>
-        <button class="room-btn" data-cat="Preferencial Recepção">Preferencial Recepção <span class="next-num" data-cat-num="Preferencial Recepção">— próxima: 1</span></button>
-        <button class="room-btn" data-cat="Bolsa Família">Bolsa Família <span class="next-num" data-cat-num="Bolsa Família">— próxima: 1</span></button>
-        <button class="room-btn" data-cat="Laboratório">Laboratório <span class="next-num" data-cat-num="Laboratório">— próxima: 1</span></button>
+      <div class="cat-rows" id="categoryList">
+        <div class="cat-row">
+          <button class="room-btn active" data-cat="Recepção">Recepção <span class="next-num" data-cat-num="Recepção">— próxima: 1</span></button>
+          <button class="reset-one-btn" data-cat-reset="Recepção" title="Zerar apenas Recepção">↺</button>
+        </div>
+        <div class="cat-row">
+          <button class="room-btn" data-cat="Preferencial Recepção">Preferencial Recepção <span class="next-num" data-cat-num="Preferencial Recepção">— próxima: 1</span></button>
+          <button class="reset-one-btn" data-cat-reset="Preferencial Recepção" title="Zerar apenas Preferencial Recepção">↺</button>
+        </div>
+        <div class="cat-row">
+          <button class="room-btn" data-cat="Bolsa Família">Bolsa Família <span class="next-num" data-cat-num="Bolsa Família">— próxima: 1</span></button>
+          <button class="reset-one-btn" data-cat-reset="Bolsa Família" title="Zerar apenas Bolsa Família">↺</button>
+        </div>
+        <div class="cat-row">
+          <button class="room-btn" data-cat="Laboratório">Laboratório <span class="next-num" data-cat-num="Laboratório">— próxima: 1</span></button>
+          <button class="reset-one-btn" data-cat-reset="Laboratório" title="Zerar apenas Laboratório">↺</button>
+        </div>
       </div>
     </div>
     <button class="call-btn" id="callBtn">Chamar próxima senha</button>
     <div class="flash" id="flash"></div>
-    <button id="resetBtn" style="background:none; border:1px solid var(--line); color:var(--muted); padding:8px; border-radius:8px; font-size:12px; cursor:pointer;">Zerar contadores</button>
+    <button id="resetBtn" style="background:none; border:1px solid var(--line); color:var(--muted); padding:8px; border-radius:8px; font-size:12px; cursor:pointer;">Zerar todos os contadores</button>
   </section>
 
   <section class="history">
@@ -359,6 +399,17 @@
     CATEGORIES.forEach(cat => setCount(cat, 0));
     renderCounters();
     flash('Contadores zerados.');
+  });
+
+  document.querySelectorAll('.reset-one-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const cat = btn.dataset.catReset;
+      if(!confirm('Zerar o contador de "' + cat + '"? Essa ação não pode ser desfeita.')) return;
+      setCount(cat, 0);
+      renderCounters();
+      flash('Contador de "' + cat + '" zerado.');
+    });
   });
 
   const dot = document.getElementById('dot');
