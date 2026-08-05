@@ -252,8 +252,8 @@
 
   <div class="call" id="callState">
     <div class="flap-row" id="flapRow"></div>
-    <div class="eyebrow">Dirija-se para</div>
-    <div class="room-line"><b id="roomNum">1</b></div>
+    <div class="eyebrow" id="eyebrowText">Dirija-se para</div>
+    <div class="room-line" id="roomLine"><b id="roomNum">1</b></div>
   </div>
 </main>
 
@@ -261,7 +261,7 @@
   <h2>Últimas chamadas</h2>
   <div class="board" id="board"><span style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Nenhuma chamada ainda.</span></div>
   <div style="margin-top:14px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); opacity:.7;">
-    Versão 1.006 — Desenvolvido e programado por Thiago Carneiro de Oliveira
+    Versão 1.007 — Desenvolvido e programado por Thiago Carneiro de Oliveira
   </div>
 </footer>
 
@@ -421,6 +421,15 @@
       flapRow.appendChild(flap);
     });
     roomNum.textContent = room;
+    const eyebrowEl = document.getElementById('eyebrowText');
+    const roomLineEl = document.getElementById('roomLine');
+    if(room){
+      eyebrowEl.style.display = '';
+      roomLineEl.style.display = '';
+    } else {
+      eyebrowEl.style.display = 'none';
+      roomLineEl.style.display = 'none';
+    }
 
     speak(nome, room);
 
@@ -447,7 +456,9 @@
   function speak(nome, room, repeticoes){
     if(!('speechSynthesis' in window)) return;
     const reps = repeticoes || 2;
-    const text = `Paciente ${nome}, dirija-se para ${room}, por favor.`;
+    const text = room
+      ? `Paciente ${nome}, dirija-se para ${room}, por favor.`
+      : `Senha ${nome}.`;
     let count = 0;
     function say(){
       if(count >= reps) return;
