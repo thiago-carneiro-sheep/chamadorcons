@@ -122,6 +122,17 @@
     text-transform:uppercase;
     font-size:15px;
   }
+  .idle-info{
+    margin-top:10px;
+    font-family:'Manrope',sans-serif;
+    font-weight:600;
+    font-size:22px;
+    color:var(--ink);
+    opacity:0;
+    transition:opacity .6s ease;
+    max-width:90vw;
+  }
+  .idle-info.show{ opacity:1; }
 
   .call{
     display:none;
@@ -248,6 +259,7 @@
   <div class="idle" id="idleState">
     <div class="breathe"></div>
     <span class="label">Aguardando chamada</span>
+    <span class="idle-info" id="idleInfo"></span>
   </div>
 
   <div class="call" id="callState">
@@ -261,7 +273,7 @@
   <h2>Últimas chamadas</h2>
   <div class="board" id="board"><span style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Nenhuma chamada ainda.</span></div>
   <div style="margin-top:14px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); opacity:.7;">
-    Versão 1.008 — Desenvolvido e programado por Thiago Carneiro de Oliveira
+    Versão 1.009 — Desenvolvido e programado por Thiago Carneiro de Oliveira
   </div>
 </footer>
 
@@ -359,6 +371,25 @@
   const roomNum = document.getElementById('roomNum');
   const board = document.getElementById('board');
   let calls = [];
+
+  // ---- Mensagens rotativas exibidas enquanto não há chamada ----
+  const IDLE_MESSAGES = [
+    'Funcionamento: Segunda - Sexta 07:00 às 19:00',
+    'Horário de coleta: 7:00',
+    'Equipes: Ipe branco, Ipe azul, Ipe amarelo, Ipe rosa',
+  ];
+  const idleInfo = document.getElementById('idleInfo');
+  let idleMsgIndex = 0;
+  function showIdleMessage(){
+    idleInfo.classList.remove('show');
+    setTimeout(()=>{
+      idleInfo.textContent = IDLE_MESSAGES[idleMsgIndex];
+      idleInfo.classList.add('show');
+      idleMsgIndex = (idleMsgIndex + 1) % IDLE_MESSAGES.length;
+    }, 300);
+  }
+  showIdleMessage();
+  setInterval(showIdleMessage, 10000);
 
   // ---- Log de chamadas (guardado no navegador, nunca apaga o que já tem) ----
   const folderStatus = document.getElementById('folderStatus');
