@@ -184,6 +184,21 @@
   .cat-row .room-btn{
     flex:1;
   }
+  .back-one-btn{
+    flex-shrink:0;
+    width:44px;
+    border-radius:10px;
+    border:2px solid var(--line);
+    background:var(--paper-raised);
+    color:var(--muted);
+    font-size:16px;
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .back-one-btn:hover{
+    border-color:var(--mint);
+    color:var(--mint);
+  }
   .skip-one-btn{
     flex-shrink:0;
     width:44px;
@@ -368,21 +383,25 @@
       <div class="cat-rows" id="categoryList">
         <div class="cat-row">
           <button class="room-btn active" data-cat="Recepção">Recepção <span class="next-num" data-cat-num="Recepção">— próxima: 1</span></button>
+          <button class="back-one-btn" data-cat-back="Recepção" title="Voltar a última senha de Recepção">⏮</button>
           <button class="skip-one-btn" data-cat-skip="Recepção" title="Pular a próxima senha de Recepção">⏭</button>
           <button class="reset-one-btn" data-cat-reset="Recepção" title="Zerar apenas Recepção">↺</button>
         </div>
         <div class="cat-row">
           <button class="room-btn" data-cat="Preferencial Recepção">Preferencial Recepção <span class="next-num" data-cat-num="Preferencial Recepção">— próxima: 1</span></button>
+          <button class="back-one-btn" data-cat-back="Preferencial Recepção" title="Voltar a última senha de Preferencial Recepção">⏮</button>
           <button class="skip-one-btn" data-cat-skip="Preferencial Recepção" title="Pular a próxima senha de Preferencial Recepção">⏭</button>
           <button class="reset-one-btn" data-cat-reset="Preferencial Recepção" title="Zerar apenas Preferencial Recepção">↺</button>
         </div>
         <div class="cat-row">
           <button class="room-btn" data-cat="Bolsa Família">Bolsa Família <span class="next-num" data-cat-num="Bolsa Família">— próxima: 1</span></button>
+          <button class="back-one-btn" data-cat-back="Bolsa Família" title="Voltar a última senha de Bolsa Família">⏮</button>
           <button class="skip-one-btn" data-cat-skip="Bolsa Família" title="Pular a próxima senha de Bolsa Família">⏭</button>
           <button class="reset-one-btn" data-cat-reset="Bolsa Família" title="Zerar apenas Bolsa Família">↺</button>
         </div>
         <div class="cat-row">
           <button class="room-btn" data-cat="Laboratório">Laboratório <span class="next-num" data-cat-num="Laboratório">— próxima: 1</span></button>
+          <button class="back-one-btn" data-cat-back="Laboratório" title="Voltar a última senha de Laboratório">⏮</button>
           <button class="skip-one-btn" data-cat-skip="Laboratório" title="Pular a próxima senha de Laboratório">⏭</button>
           <button class="reset-one-btn" data-cat-reset="Laboratório" title="Zerar apenas Laboratório">↺</button>
         </div>
@@ -450,6 +469,18 @@
     CATEGORIES.forEach(cat => setCount(cat, 0));
     renderCounters();
     flash('Contadores zerados.');
+  });
+
+  document.querySelectorAll('.back-one-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const cat = btn.dataset.catBack;
+      const atual = getCount(cat);
+      if(atual <= 0){ flash('Contador de "' + cat + '" já está em zero.'); return; }
+      setCount(cat, atual - 1);
+      renderCounters();
+      flash('Voltou: próxima senha de "' + cat + '" agora é ' + (atual));
+    });
   });
 
   document.querySelectorAll('.skip-one-btn').forEach(btn=>{
