@@ -297,12 +297,28 @@
 <main>
   <section class="panel">
     <div>
+      <label>Modo de chamada</label>
+      <div class="rooms" style="grid-template-columns:1fr 1fr;">
+        <button class="room-btn mode-btn active" id="modeNomeBtn">Nome do paciente</button>
+        <button class="room-btn mode-btn" id="modeLabBtn">Laboratório (numerado)</button>
+      </div>
+    </div>
+    <div id="nomeField">
       <label for="nome">Nome do paciente</label>
       <input type="text" id="nome" placeholder="Digite o nome" autocomplete="off">
     </div>
+    <div id="labField" style="display:none;">
+      <label>Próxima chamada</label>
+      <div style="padding:14px 16px; background:var(--mint-soft); border-radius:10px; font-weight:700; color:var(--mint);" id="labPreview">Laboratório 1</div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button id="labBackBtn" style="flex:1; padding:10px; border-radius:8px; border:2px solid var(--line); background:var(--paper-raised); color:var(--muted); font-size:13px; cursor:pointer;">⏮ Voltar</button>
+        <button id="labSkipBtn" style="flex:1; padding:10px; border-radius:8px; border:2px solid var(--line); background:var(--paper-raised); color:var(--muted); font-size:13px; cursor:pointer;">⏭ Pular</button>
+        <button id="labResetBtn" style="flex:1; padding:10px; border-radius:8px; border:2px solid var(--line); background:var(--paper-raised); color:var(--muted); font-size:13px; cursor:pointer;">↺ Zerar</button>
+      </div>
+    </div>
     <div>
       <label>Sala</label>
-      <div class="rooms" style="grid-template-columns:1fr;">
+      <div class="rooms" id="roomList" style="grid-template-columns:1fr;">
         <button class="room-btn active" data-room="Sala de pré-consulta">Sala de pré-consulta</button>
         <button class="room-btn" data-room="Sala de procedimentos">Sala de procedimentos</button>
         <button class="room-btn" data-room="Sala de inalação">Sala de inalação</button>
@@ -327,12 +343,56 @@
   document.getElementById('codeInput').value = codigo;
 
   let selectedRoom = 'Sala de pré-consulta';
-  document.querySelectorAll('.room-btn').forEach(btn=>{
+  document.querySelectorAll('#roomList .room-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.room-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('#roomList .room-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       selectedRoom = btn.dataset.room;
     });
+  });
+
+  // ---- Alternância entre "nome do paciente" e "laboratório (numerado)" ----
+  let modo = 'nome'; // 'nome' ou 'lab'
+  const modeNomeBtn = document.getElementById('modeNomeBtn');
+  const modeLabBtn = document.getElementById('modeLabBtn');
+  const nomeField = document.getElementById('nomeField');
+  const labField = document.getElementById('labField');
+  const labPreview = document.getElementById('labPreview');
+  const LAB_COUNT_KEY = 'cp_lab_count';
+  function getLabCount(){ return parseInt(localStorage.getItem(LAB_COUNT_KEY) || '0', 10); }
+  function setLabCount(n){ localStorage.setItem(LAB_COUNT_KEY, String(n)); }
+  function renderLabPreview(){ labPreview.textContent = 'Laboratório ' + (getLabCount() + 1); }
+  renderLabPreview();
+
+  function setModo(novoModo){
+    modo = novoModo;
+    modeNomeBtn.classList.toggle('active', modo === 'nome');
+    modeLabBtn.classList.toggle('active', modo === 'lab');
+    nomeField.style.display = modo === 'nome' ? '' : 'none';
+    labField.style.display = modo === 'lab' ? '' : 'none';
+    callBtn.textContent = modo === 'lab' ? 'Chamar laboratório' : 'Chamar paciente';
+  }
+  modeNomeBtn.addEventListener('click', ()=> setModo('nome'));
+  modeLabBtn.addEventListener('click', ()=> setModo('lab'));
+
+  document.getElementById('labBackBtn').addEventListener('click', ()=>{
+    const atual = getLabCount();
+    if(atual <= 0){ flash('O contador já está em zero.'); return; }
+    setLabCount(atual - 1);
+    renderLabPreview();
+    flash('Voltou: próxima chamada agora é Laboratório ' + atual + '.');
+  });
+  document.getElementById('labSkipBtn').addEventListener('click', ()=>{
+    const pulado = getLabCount() + 1;
+    setLabCount(pulado);
+    renderLabPreview();
+    flash('Laboratório ' + pulado + ' pulado (sem chamar).');
+  });
+  document.getElementById('labResetBtn').addEventListener('click', ()=>{
+    if(!confirm('Zerar o contador do laboratório? Essa ação não pode ser desfeita.')) return;
+    setLabCount(0);
+    renderLabPreview();
+    flash('Contador do laboratório zerado.');
   });
 
   const dot = document.getElementById('dot');
@@ -392,8 +452,13 @@
   let history = [];
 
   async function chamar(){
-    const nome = nomeInput.value.trim();
-    if(!nome){ nomeInput.focus(); return; }
+    let nome;
+    if(modo === 'lab'){
+      nome = 'Laboratório ' + (getLabCount() + 1);
+    }else{
+      nome = nomeInput.value.trim();
+      if(!nome){ nomeInput.focus(); return; }
+    }
     const payload = { nome, consultorio: selectedRoom, ts: Date.now() };
     callBtn.disabled = true;
     try{
@@ -404,6 +469,10 @@
       });
       if(!resp.ok) throw new Error('falha no envio');
       flash('Chamada enviada: ' + nome + ' → ' + selectedRoom);
+      if(modo === 'lab'){
+        setLabCount(getLabCount() + 1);
+        renderLabPreview();
+      }
       history.unshift(payload);
       history = history.slice(0, 20);
       renderHistory();
