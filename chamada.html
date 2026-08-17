@@ -261,7 +261,7 @@
   <h2>Últimas chamadas</h2>
   <div class="board" id="board"><span style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Nenhuma chamada ainda.</span></div>
   <div style="margin-top:14px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); opacity:.7;">
-    Versão 1.011 — Desenvolvido e programado por Thiago Carneiro de Oliveira
+    Versão 1.012 — Desenvolvido e programado por Thiago Carneiro de Oliveira
   </div>
 </footer>
 
@@ -399,11 +399,29 @@
   downloadLogBtn.addEventListener('click', downloadLog);
   updateLogStatus();
 
+  let callQueue = [];
+  let isProcessingCall = false;
+
   function handleCall(data){
     const nome = (data.nome || '').toString().trim();
     const room = (data.consultorio || '').toString().trim();
     if(!nome) return;
+    callQueue.push({ nome, room, ts: data.ts || Date.now() });
+    processQueue();
+  }
 
+  function processQueue(){
+    if(isProcessingCall) return; // já tem uma chamada em andamento, aguarda ela terminar
+    if(callQueue.length === 0) return;
+    isProcessingCall = true;
+    const { nome, room, ts } = callQueue.shift();
+    displayCall(nome, room, ts, ()=>{
+      isProcessingCall = false;
+      processQueue(); // avança pra próxima da fila, se houver
+    });
+  }
+
+  function displayCall(nome, room, ts, onDone){
     idleState.style.display = 'none';
     callState.classList.remove('show');
     void callState.offsetWidth; // reinicia animação
@@ -432,13 +450,13 @@
     }
 
     playChime();
-    speak(nome, room, room ? 2 : 1);
+    speak(nome, room, room ? 2 : 1, onDone);
 
-    calls.unshift({nome, room, ts: data.ts || Date.now()});
+    calls.unshift({nome, room, ts});
     calls = calls.slice(0, 10);
     renderBoard();
 
-    appendLogEntry(nome, room, data.ts || Date.now());
+    appendLogEntry(nome, room, ts);
   }
 
   function renderBoard(){
@@ -477,8 +495,12 @@
     }catch(e){}
   }
 
-  function speak(nome, room, repeticoes){
-    if(!('speechSynthesis' in window)) return;
+  function speak(nome, room, repeticoes, onDone){
+    if(!('speechSynthesis' in window)){
+      // sem suporte a voz: mantém a chamada visível por um tempo mínimo antes de liberar a próxima
+      setTimeout(()=>{ if(onDone) onDone(); }, 4000);
+      return;
+    }
     const reps = repeticoes || 2;
     const prefixo = nome.startsWith('Laboratório') ? 'Senha' : 'Paciente';
     const text = room
@@ -486,11 +508,15 @@
       : `Senha ${nome}.`;
     let count = 0;
     function say(){
-      if(count >= reps) return;
+      if(count >= reps){
+        if(onDone) onDone();
+        return;
+      }
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'pt-BR';
       utter.rate = 0.95;
-      utter.onend = ()=>{ count++; if(count < reps) setTimeout(say, 600); };
+      utter.onend = ()=>{ count++; if(count < reps) setTimeout(say, 600); else if(onDone) onDone(); };
+      utter.onerror = ()=>{ count++; if(count < reps) setTimeout(say, 600); else if(onDone) onDone(); };
       speechSynthesis.speak(utter);
     }
     speechSynthesis.cancel();
