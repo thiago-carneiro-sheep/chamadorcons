@@ -298,8 +298,9 @@
   <section class="panel">
     <div>
       <label>Modo de chamada</label>
-      <div class="rooms" style="grid-template-columns:1fr 1fr;">
+      <div class="rooms" style="grid-template-columns:1fr 1fr 1fr;">
         <button class="room-btn mode-btn active" id="modeNomeBtn">Nome do paciente</button>
+        <button class="room-btn mode-btn" id="modeSalasBtn">Salas</button>
         <button class="room-btn mode-btn" id="modeLabBtn">Laboratório (numerado)</button>
       </div>
     </div>
@@ -316,7 +317,11 @@
         <button id="labResetBtn" style="flex:1; padding:10px; border-radius:8px; border:2px solid var(--line); background:var(--paper-raised); color:var(--muted); font-size:13px; cursor:pointer;">↺ Zerar</button>
       </div>
     </div>
-    <div>
+    <div id="nomeSalasField" style="display:none;">
+      <label for="nomeSalas">Nome do paciente</label>
+      <input type="text" id="nomeSalas" placeholder="Digite o nome" autocomplete="off">
+    </div>
+    <div id="roomBlockNursing">
       <label>Sala</label>
       <div class="rooms" id="roomList" style="grid-template-columns:1fr;">
         <button class="room-btn active" data-room="Sala de pré-consulta">Sala de pré-consulta</button>
@@ -325,6 +330,15 @@
         <button class="room-btn" data-room="Sala de vacina">Sala de vacina</button>
         <button class="room-btn" data-room="Consultório enfermagem">Consultório enfermagem</button>
         <button class="room-btn" data-room="Auditório">Auditório</button>
+      </div>
+    </div>
+    <div id="roomBlockSalas" style="display:none;">
+      <label>Sala</label>
+      <div class="rooms" id="roomListSalas" style="grid-template-columns:1fr;">
+        <button class="room-btn" data-room="Consultório 1">Consultório 1</button>
+        <button class="room-btn" data-room="Consultório 2">Consultório 2</button>
+        <button class="room-btn" data-room="Consultório 3">Consultório 3</button>
+        <button class="room-btn" data-room="Consultório 4">Consultório 4</button>
       </div>
     </div>
     <button class="call-btn" id="callBtn">Chamar paciente</button>
@@ -343,6 +357,7 @@
   document.getElementById('codeInput').value = codigo;
 
   let selectedRoom = 'Sala de pré-consulta';
+  let selectedRoomSalas = 'Consultório 1';
   document.querySelectorAll('#roomList .room-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('#roomList .room-btn').forEach(b=>b.classList.remove('active'));
@@ -350,13 +365,26 @@
       selectedRoom = btn.dataset.room;
     });
   });
+  document.querySelectorAll('#roomListSalas .room-btn').forEach((btn, i)=>{
+    if(i === 0) btn.classList.add('active');
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#roomListSalas .room-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedRoomSalas = btn.dataset.room;
+    });
+  });
 
-  // ---- Alternância entre "nome do paciente" e "laboratório (numerado)" ----
-  let modo = 'nome'; // 'nome' ou 'lab'
+  // ---- Alternância entre "nome do paciente", "salas" e "laboratório (numerado)" ----
+  let modo = 'nome'; // 'nome', 'salas' ou 'lab'
   const modeNomeBtn = document.getElementById('modeNomeBtn');
+  const modeSalasBtn = document.getElementById('modeSalasBtn');
   const modeLabBtn = document.getElementById('modeLabBtn');
   const nomeField = document.getElementById('nomeField');
+  const nomeSalasField = document.getElementById('nomeSalasField');
+  const nomeSalasInput = document.getElementById('nomeSalas');
   const labField = document.getElementById('labField');
+  const roomBlockNursing = document.getElementById('roomBlockNursing');
+  const roomBlockSalas = document.getElementById('roomBlockSalas');
   const labPreview = document.getElementById('labPreview');
   const LAB_COUNT_KEY = 'cp_lab_count';
   function getLabCount(){ return parseInt(localStorage.getItem(LAB_COUNT_KEY) || '0', 10); }
@@ -367,12 +395,17 @@
   function setModo(novoModo){
     modo = novoModo;
     modeNomeBtn.classList.toggle('active', modo === 'nome');
+    modeSalasBtn.classList.toggle('active', modo === 'salas');
     modeLabBtn.classList.toggle('active', modo === 'lab');
     nomeField.style.display = modo === 'nome' ? '' : 'none';
+    nomeSalasField.style.display = modo === 'salas' ? '' : 'none';
     labField.style.display = modo === 'lab' ? '' : 'none';
+    roomBlockNursing.style.display = (modo === 'nome' || modo === 'lab') ? '' : 'none';
+    roomBlockSalas.style.display = modo === 'salas' ? '' : 'none';
     callBtn.textContent = modo === 'lab' ? 'Chamar laboratório' : 'Chamar paciente';
   }
   modeNomeBtn.addEventListener('click', ()=> setModo('nome'));
+  modeSalasBtn.addEventListener('click', ()=> setModo('salas'));
   modeLabBtn.addEventListener('click', ()=> setModo('lab'));
 
   document.getElementById('labBackBtn').addEventListener('click', ()=>{
@@ -452,14 +485,20 @@
   let history = [];
 
   async function chamar(){
-    let nome;
+    let nome, destino;
     if(modo === 'lab'){
       nome = 'Laboratório ' + (getLabCount() + 1);
+      destino = selectedRoom;
+    }else if(modo === 'salas'){
+      nome = nomeSalasInput.value.trim();
+      if(!nome){ nomeSalasInput.focus(); return; }
+      destino = selectedRoomSalas;
     }else{
       nome = nomeInput.value.trim();
       if(!nome){ nomeInput.focus(); return; }
+      destino = selectedRoom;
     }
-    const payload = { nome, consultorio: selectedRoom, ts: Date.now() };
+    const payload = { nome, consultorio: destino, ts: Date.now() };
     callBtn.disabled = true;
     try{
       const resp = await fetch('https://ntfy.sh/' + topicName(), {
@@ -468,7 +507,7 @@
         body: JSON.stringify(payload),
       });
       if(!resp.ok) throw new Error('falha no envio');
-      flash('Chamada enviada: ' + nome + ' → ' + selectedRoom);
+      flash('Chamada enviada: ' + nome + ' → ' + destino);
       if(modo === 'lab'){
         setLabCount(getLabCount() + 1);
         renderLabPreview();
@@ -477,6 +516,7 @@
       history = history.slice(0, 20);
       renderHistory();
       nomeInput.value = '';
+      nomeSalasInput.value = '';
       nomeInput.focus();
     }catch(e){
       flash('Falha ao enviar — verifique sua conexão com a internet.');
@@ -507,6 +547,7 @@
 
   callBtn.addEventListener('click', chamar);
   nomeInput.addEventListener('keydown', e=>{ if(e.key === 'Enter') chamar(); });
+  nomeSalasInput.addEventListener('keydown', e=>{ if(e.key === 'Enter') chamar(); });
 </script>
 
 </body>

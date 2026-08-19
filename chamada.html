@@ -261,7 +261,7 @@
   <h2>Últimas chamadas</h2>
   <div class="board" id="board"><span style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Nenhuma chamada ainda.</span></div>
   <div style="margin-top:14px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); opacity:.7;">
-    Versão 1.012 — Desenvolvido e programado por Thiago Carneiro de Oliveira
+    Versão 1.013 — Desenvolvido e programado por Thiago Carneiro de Oliveira
   </div>
 </footer>
 
@@ -502,9 +502,8 @@
       return;
     }
     const reps = repeticoes || 2;
-    const prefixo = nome.startsWith('Laboratório') ? 'Senha' : 'Paciente';
     const text = room
-      ? `${prefixo} ${nome}, dirija-se para ${room}.`
+      ? `${nome}, dirija-se a ${room}.`
       : `Senha ${nome}.`;
     let count = 0;
     function say(){
