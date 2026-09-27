@@ -15,7 +15,7 @@
 <style>
   :root{
     --ink:#10262A;
-    --paper:#EFF3F2;
+    --paper:#ddd9ce;
     --paper-raised:#FFFFFF;
     --line:#D3DEDC;
     --mint:#1F6F5C;
@@ -273,6 +273,24 @@
 </head>
 <body>
 
+<div id="wallpaper" aria-hidden="true" style="position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none;">
+  <svg viewBox="0 0 800 900" preserveAspectRatio="xMaxYMax slice" style="position:absolute; right:-60px; bottom:-40px; width:520px; height:auto; opacity:.35; transition:opacity .3s;" id="ipeSvg">
+    <rect x="378" y="430" width="26" height="380" rx="8" fill="#8A6A4E"/>
+    <path d="M391 560 C 340 520, 300 470, 300 430" stroke="#8A6A4E" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M391 500 C 450 460, 500 420, 520 380" stroke="#8A6A4E" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M391 460 C 360 400, 340 340, 350 290" stroke="#8A6A4E" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <g id="ipeCanopy" fill="#B9D8CE">
+      <circle cx="360" cy="330" r="95"/>
+      <circle cx="470" cy="300" r="115"/>
+      <circle cx="290" cy="270" r="85"/>
+      <circle cx="420" cy="230" r="90"/>
+      <circle cx="530" cy="230" r="80"/>
+      <circle cx="350" cy="200" r="75"/>
+      <circle cx="480" cy="150" r="65"/>
+    </g>
+  </svg>
+</div>
+
 <header>
   <div class="brand">
     <span class="mark">CP</span>
@@ -288,6 +306,8 @@
   </div>
 </header>
 
+<div id="teamBar" style="height:6px; background:transparent; transition:background .25s;"></div>
+
 <div class="code-row" id="codeRow">
   <span style="font-size:12px; font-weight:700; color:var(--mint);">Código da unidade:</span>
   <input type="text" id="codeInput" placeholder="ex: clinica-centro">
@@ -297,12 +317,22 @@
 <main>
   <section class="panel">
     <div>
+      <label>Equipe</label>
+      <div class="rooms" id="teamButtons" style="grid-template-columns:repeat(3,1fr);">
+        <button class="room-btn active" data-team="padrao">Padrão</button>
+        <button class="room-btn" data-team="amarelo">Ipê Amarelo</button>
+        <button class="room-btn" data-team="azul">Ipê Azul</button>
+        <button class="room-btn" data-team="branco">Ipê Branco</button>
+        <button class="room-btn" data-team="rosa">Ipê Rosa</button>
+      </div>
+    </div>
+    <div>
       <label for="nome">Nome do paciente</label>
       <input type="text" id="nome" placeholder="Digite o nome" autocomplete="off">
     </div>
     <div>
       <label>Consultório</label>
-      <div class="rooms">
+      <div class="rooms" id="roomButtons">
         <button class="room-btn active" data-room="Consultório 1">CONS. 1</button>
         <button class="room-btn" data-room="Consultório 2">CONS. 2</button>
         <button class="room-btn" data-room="Consultório 3">CONS. 3</button>
@@ -314,6 +344,10 @@
   </section>
 
   <section class="history">
+    <div id="teamCard" style="display:none; margin-bottom:22px; padding:16px 18px; border-radius:10px; border:1px solid var(--line); border-left-width:5px; background:var(--paper-raised);">
+      <h2 id="teamCardTitle" style="margin:0 0 10px 0;">Equipe</h2>
+      <div id="teamCardMembers" style="display:flex; flex-direction:column; gap:6px; font-size:14px;"></div>
+    </div>
     <h2>Histórico de chamadas</h2>
     <div id="historyList"><p class="empty">Nenhuma chamada realizada ainda.</p></div>
   </section>
@@ -325,12 +359,63 @@
   document.getElementById('codeInput').value = codigo;
 
   let selectedRoom = 'Consultório 1';
-  document.querySelectorAll('.room-btn').forEach(btn=>{
+  document.querySelectorAll('#roomButtons .room-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.room-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('#roomButtons .room-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       selectedRoom = btn.dataset.room;
     });
+  });
+
+  // ---- Equipe ----
+  const TEAMS = {
+    padrao:  { label: 'Padrão',      color: null,      textColor: null,    soft: '#B9D8CE', members: null },
+    amarelo: { label: 'Ipê Amarelo', color: '#F4C430',  textColor: '#3A2E00', soft: '#F6E3A8', members: [['Médico','Yelina'],['Enfermeiro','Susana'],['Dentista','Eveline']] },
+    azul:    { label: 'Ipê Azul',    color: '#2F6FED',  textColor: '#FFFFFF', soft: '#2F6FED', members: [['Médico','Ariane'],['Enfermeiro','Alex'],['Dentista','Jader']] },
+    branco:  { label: 'Ipê Branco',  color: '#FFFFFF',  textColor: '#10262A', soft: '#E5E9E8', members: [['Médico','Mayara Valente'],['Enfermeiro','Silvia']] },
+    rosa:    { label: 'Ipê Rosa',    color: '#E85D9E',  textColor: '#FFFFFF', soft: '#F3C6DE', members: [['Médico','Mauro'],['Enfermeiro','Katia'],['Dentista','Mayara Marin']] },
+  };
+  const teamBar = document.getElementById('teamBar');
+  const teamCard = document.getElementById('teamCard');
+  const teamCardTitle = document.getElementById('teamCardTitle');
+  const teamCardMembers = document.getElementById('teamCardMembers');
+  const ipeCanopy = document.getElementById('ipeCanopy');
+
+  function applyTeam(key){
+    const team = TEAMS[key];
+    ipeCanopy.setAttribute('fill', team.soft);
+    document.querySelectorAll('#teamButtons .room-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.team === key);
+      if(b.dataset.team === key && team.color){
+        b.style.background = team.color;
+        b.style.borderColor = (team.color === '#FFFFFF') ? 'var(--ink)' : team.color;
+        b.style.color = team.textColor;
+      } else {
+        b.style.background = '';
+        b.style.borderColor = '';
+        b.style.color = '';
+      }
+    });
+
+    if(key === 'padrao' || !team.members){
+      teamBar.style.background = 'transparent';
+      teamCard.style.display = 'none';
+      return;
+    }
+
+    const barColor = (team.color === '#FFFFFF') ? '#C7CFCE' : team.color;
+    teamBar.style.background = barColor;
+    teamCard.style.display = '';
+    teamCard.style.borderLeftColor = barColor;
+    teamCardTitle.textContent = 'Equipe ' + team.label;
+    teamCardTitle.style.color = (team.color === '#FFFFFF') ? 'var(--ink)' : team.color;
+    teamCardMembers.innerHTML = team.members.map(([cargo, nome])=>
+      `<div><b>${cargo}:</b> ${nome}</div>`
+    ).join('');
+  }
+
+  document.querySelectorAll('#teamButtons .room-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> applyTeam(btn.dataset.team));
   });
 
   const dot = document.getElementById('dot');
