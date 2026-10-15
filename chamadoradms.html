@@ -517,17 +517,21 @@
   function sanitize(c){ return c.toLowerCase().replace(/[^a-z0-9-]/g, '-'); }
   function topicName(){ return 'chamadorcons-' + sanitize(codigo); }
 
+  let retryDelay = 4000;
   function connect(){
-    if(socket){ try{ socket.close(); }catch(e){} }
     clearTimeout(reconnectTimer);
+    if(socket){ const old = socket; socket = null; try{ old.close(); }catch(e){} }
     setStatus('connecting');
-    socket = new WebSocket('wss://ntfy.sh/' + topicName() + '/ws');
-    socket.addEventListener('open', ()=> setStatus('online'));
-    socket.addEventListener('close', ()=>{
+    const ws = new WebSocket('wss://ntfy.sh/' + topicName() + '/ws');
+    socket = ws;
+    ws.addEventListener('open', ()=>{ if(socket !== ws) return; retryDelay = 4000; setStatus('online'); });
+    ws.addEventListener('close', ()=>{
+      if(socket !== ws) return; // socket antigo, já substituído: não reconectar
       setStatus('offline');
-      reconnectTimer = setTimeout(connect, 4000);
+      reconnectTimer = setTimeout(connect, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 60000); // espera cada vez mais, até 60s
     });
-    socket.addEventListener('error', ()=> setStatus('offline'));
+    ws.addEventListener('error', ()=>{ if(socket === ws) setStatus('offline'); });
   }
   connect();
 
@@ -571,7 +575,7 @@
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload),
       });
-      if(!resp.ok) throw new Error('falha no envio');
+      if(!resp.ok){ const err = new Error('falha no envio'); err.status = resp.status; throw err; }
       setCount(selectedCategory, proximo);
       renderCounters();
       flash('Chamada enviada: ' + senha);
@@ -579,7 +583,7 @@
       history = history.slice(0, 20);
       renderHistory();
     }catch(e){
-      flash('Falha ao enviar — verifique sua conexão com a internet.');
+      flash(e && e.status === 429 ? 'Limite do servidor de mensagens atingido (erro 429) — pode ser o limite diário do serviço gratuito. Tente de novo mais tarde.' : (e && e.status ? 'Falha ao enviar (erro ' + e.status + ').' : 'Falha ao enviar — verifique sua conexão com a internet.'));
     }finally{
       callBtn.disabled = false;
     }
@@ -597,7 +601,7 @@
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload),
       });
-      if(!resp.ok) throw new Error('falha no envio');
+      if(!resp.ok){ const err = new Error('falha no envio'); err.status = resp.status; throw err; }
       flash('Chamada enviada: ' + nome + ' → ' + destino);
       history.unshift(payload);
       history = history.slice(0, 20);
@@ -605,7 +609,7 @@
       nomeInput.value = '';
       nomeInput.focus();
     }catch(e){
-      flash('Falha ao enviar — verifique sua conexão com a internet.');
+      flash(e && e.status === 429 ? 'Limite do servidor de mensagens atingido (erro 429) — pode ser o limite diário do serviço gratuito. Tente de novo mais tarde.' : (e && e.status ? 'Falha ao enviar (erro ' + e.status + ').' : 'Falha ao enviar — verifique sua conexão com a internet.'));
     }finally{
       callBtn.disabled = false;
     }

@@ -261,7 +261,7 @@
   <h2>Últimas chamadas</h2>
   <div class="board" id="board"><span style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Nenhuma chamada ainda.</span></div>
   <div style="margin-top:14px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); opacity:.7;">
-    Versão 1.013 — Desenvolvido e programado por Thiago Carneiro de Oliveira
+    Versão 1.014 — Desenvolvido e programado por Thiago Carneiro de Oliveira
   </div>
 </footer>
 
@@ -288,18 +288,22 @@
   function sanitize(c){ return c.toLowerCase().replace(/[^a-z0-9-]/g, '-'); }
   function topicName(){ return 'chamadorcons-' + sanitize(codigo); }
 
+  let retryDelay = 4000;
   function connect(){
-    if(socket){ try{ socket.close(); }catch(e){} }
     clearTimeout(reconnectTimer);
+    if(socket){ const old = socket; socket = null; try{ old.close(); }catch(e){} }
     setStatus('connecting');
-    socket = new WebSocket('wss://ntfy.sh/' + topicName() + '/ws');
-    socket.addEventListener('open', ()=> setStatus('online'));
-    socket.addEventListener('close', ()=>{
+    const ws = new WebSocket('wss://ntfy.sh/' + topicName() + '/ws');
+    socket = ws;
+    ws.addEventListener('open', ()=>{ if(socket !== ws) return; retryDelay = 4000; setStatus('online'); });
+    ws.addEventListener('close', ()=>{
+      if(socket !== ws) return; // socket antigo, já substituído: não reconectar
       setStatus('offline');
-      reconnectTimer = setTimeout(connect, 4000);
+      reconnectTimer = setTimeout(connect, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 60000); // espera cada vez mais, até 60s
     });
-    socket.addEventListener('error', ()=> setStatus('offline'));
-    socket.addEventListener('message', (event)=>{
+    ws.addEventListener('error', ()=>{ if(socket === ws) setStatus('offline'); });
+    ws.addEventListener('message', (event)=>{
       try{
         const wrapper = JSON.parse(event.data);
         if(wrapper.event === 'message' && wrapper.message){
