@@ -191,6 +191,7 @@
     { user: 'sersocial',   pass: 'sso123',    redirect: 'chamadorsersocial.html',flag:'cp_auth_chamadorsersocial'},
     { user: 'adms',        pass: 'adm123',    redirect: 'chamadoradms.html',    flag: 'cp_auth_chamadoradms'    },
     { user: 'emulti',      pass: 'emulti123', redirect: 'chamadoremulti.html',  flag: 'cp_auth_chamadoremulti'  },
+    { user: 'acao',        pass: 'acao',      redirect: 'chamadoracao.html',    flag: 'cp_auth_chamadoracao'    },
   ];
 
   const eyeBtn = document.getElementById('eyeBtn');
@@ -211,7 +212,9 @@
     const user = document.getElementById('user').value.trim();
     const pass = document.getElementById('pass').value;
 
-    const match = ACCOUNTS.find(a => a.user === user && a.pass === pass);
+    // usuário sem diferenciar maiúsculas/acentos (ex.: "ação" = "acao")
+    const userNorm = user.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const match = ACCOUNTS.find(a => a.user === userNorm && a.pass === pass);
 
     if(match){
       sessionStorage.setItem(match.flag, '1');

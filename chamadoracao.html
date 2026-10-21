@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Aviso — Chamada de Pacientes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  if(sessionStorage.getItem('cp_auth_chamadoracao') !== '1'){
+    window.location.href = 'index.html';
+  }
+</script>
+<style>
+  :root{
+    --ink:#10262A;
+    --paper:#B5B5B5;
+    --paper-raised:#FFFFFF;
+    --line:#D3DEDC;
+    --mint:#1F6F5C;
+    --mint-soft:#DCEEE8;
+    --amber:#F4A93B;
+    --amber-deep:#C77E12;
+    --red:#C0453A;
+    --muted:#5C716E;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Manrope',sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  header{
+    padding:20px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    background:var(--paper-raised);
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  .brand .mark{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:.14em;
+    color:var(--mint);
+    border:1.5px solid var(--mint);
+    padding:3px 7px;
+    border-radius:4px;
+  }
+  .brand h1{
+    font-size:18px;
+    margin:0;
+    font-weight:800;
+    letter-spacing:-.01em;
+  }
+  .status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.04em;
+    color:var(--muted);
+  }
+  .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--red);
+    transition:background .3s;
+    box-shadow:0 0 0 0 rgba(192,69,58,.5);
+  }
+  .dot.online{
+    background:var(--mint);
+    animation:pulse 2.2s infinite;
+  }
+  .dot.connecting{ background:var(--amber); }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(31,111,92,.45);}
+    70%{box-shadow:0 0 0 7px rgba(31,111,92,0);}
+    100%{box-shadow:0 0 0 0 rgba(31,111,92,0);}
+  }
+  .gear{
+    background:none;border:none;cursor:pointer;
+    color:var(--muted);font-size:18px;padding:4px 8px;border-radius:6px;
+  }
+  .gear:hover{background:var(--mint-soft);color:var(--mint);}
+
+  main{
+    flex:1;
+    display:grid;
+    grid-template-columns:minmax(320px,460px) 1fr;
+    gap:0;
+  }
+  @media (max-width:860px){
+    main{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    padding:36px 40px;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+    border-right:1px solid var(--line);
+  }
+  label{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:block;
+    margin-bottom:8px;
+  }
+  input[type=text]{
+    width:100%;
+    padding:16px 16px;
+    font-size:22px;
+    font-family:'Manrope',sans-serif;
+    font-weight:700;
+    border:2px solid var(--line);
+    border-radius:10px;
+    background:var(--paper-raised);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  input[type=text]:focus{border-color:var(--mint);}
+
+  .rooms{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+  }
+  .room-btn{
+    padding:16px 8px;
+    border-radius:10px;
+    border:2px solid var(--line);
+    background:var(--paper-raised);
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:15px;
+    color:var(--ink);
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .room-btn:hover{border-color:var(--mint);}
+  .room-btn.active{
+    background:var(--mint);
+    border-color:var(--mint);
+    color:#fff;
+  }
+
+  .call-btn{
+    margin-top:6px;
+    padding:20px;
+    border:none;
+    border-radius:12px;
+    background:var(--amber);
+    color:#2B1B02;
+    font-family:'Manrope',sans-serif;
+    font-weight:800;
+    font-size:19px;
+    letter-spacing:.01em;
+    cursor:pointer;
+    transition:transform .08s, background .15s;
+    box-shadow:0 3px 0 var(--amber-deep);
+  }
+  .call-btn:active{transform:translateY(3px);box-shadow:0 0 0 var(--amber-deep);}
+  .call-btn:disabled{opacity:.5;cursor:not-allowed;}
+  .call-btn:hover:not(:disabled){background:#f7b959;}
+
+  .flash{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    color:var(--mint);
+    min-height:16px;
+    letter-spacing:.03em;
+  }
+
+  .code-row{
+    display:none;
+    gap:8px;
+    align-items:center;
+    background:var(--mint-soft);
+    padding:12px 14px;
+    border-radius:10px;
+  }
+  .code-row.open{display:flex;}
+  .code-row input{
+    flex:1;
+    padding:8px 10px;
+    font-size:14px;
+    font-weight:600;
+    border-radius:6px;
+    border:1.5px solid var(--line);
+  }
+  .code-row button{
+    padding:8px 12px;
+    border:none;
+    border-radius:6px;
+    background:var(--mint);
+    color:#fff;
+    font-weight:700;
+    font-size:12px;
+    cursor:pointer;
+  }
+
+  .history{
+    padding:36px 40px;
+    overflow-y:auto;
+  }
+  .history h2{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:var(--muted);
+    margin:0 0 18px 0;
+  }
+  .ticket{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:14px 16px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-left:4px solid var(--mint);
+    border-radius:8px;
+    margin-bottom:10px;
+    animation:slideIn .25s ease;
+  }
+  @keyframes slideIn{
+    from{opacity:0; transform:translateY(-6px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .ticket .time{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    width:52px;
+    flex-shrink:0;
+  }
+  .ticket .name{
+    font-weight:700;
+    font-size:15px;
+    flex:1;
+  }
+  .ticket .room{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:12px;
+    color:var(--mint);
+    background:var(--mint-soft);
+    padding:4px 9px;
+    border-radius:5px;
+  }
+  .empty{
+    color:var(--muted);
+    font-size:14px;
+    font-style:italic;
+  }
+</style>
+</head>
+<body>
+
+<div id="wallpaper" aria-hidden="true" style="position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none;">
+  <svg viewBox="0 0 800 900" preserveAspectRatio="xMaxYMax slice" style="position:absolute; right:-60px; bottom:-40px; width:520px; height:auto; opacity:.35; transition:opacity .3s;" id="ipeSvg">
+    <rect x="378" y="430" width="26" height="380" rx="8" fill="#8A6A4E"/>
+    <path d="M391 560 C 340 520, 300 470, 300 430" stroke="#8A6A4E" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M391 500 C 450 460, 500 420, 520 380" stroke="#8A6A4E" stroke-width="14" fill="none" stroke-linecap="round"/>
+    <path d="M391 460 C 360 400, 340 340, 350 290" stroke="#8A6A4E" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <g id="ipeCanopy" fill="#B9D8CE">
+      <circle cx="360" cy="330" r="95"/>
+      <circle cx="470" cy="300" r="115"/>
+      <circle cx="290" cy="270" r="85"/>
+      <circle cx="420" cy="230" r="90"/>
+      <circle cx="530" cy="230" r="80"/>
+      <circle cx="350" cy="200" r="75"/>
+      <circle cx="480" cy="150" r="65"/>
+    </g>
+  </svg>
+</div>
+
+<header>
+  <div class="brand">
+    <span class="mark">AVISO</span>
+    <h1>Aviso aos Pacientes</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <div class="status">
+      <span class="dot" id="dot"></span>
+      <span id="statusText">conectando…</span>
+    </div>
+    <button class="gear" id="gearBtn" title="Configurar código da unidade">⚙</button>
+    <button class="gear" id="logoutBtn" title="Sair" style="font-size:13px;">Sair</button>
+  </div>
+</header>
+
+<div id="teamBar" style="height:6px; background:transparent; transition:background .25s;"></div>
+
+<div class="code-row" id="codeRow">
+  <span style="font-size:12px; font-weight:700; color:var(--mint);">Código da unidade:</span>
+  <input type="text" id="codeInput" placeholder="ex: clinica-centro">
+  <button id="codeSave">Salvar</button>
+</div>
+
+<main>
+  <section class="panel">
+    <div>
+      <label>Equipe</label>
+      <div class="rooms" id="teamButtons" style="grid-template-columns:repeat(3,1fr);">
+        <button class="room-btn active" data-team="padrao">Padrão</button>
+        <button class="room-btn" data-team="amarelo">Ipê Amarelo</button>
+        <button class="room-btn" data-team="azul">Ipê Azul</button>
+        <button class="room-btn" data-team="branco">Ipê Branco</button>
+        <button class="room-btn" data-team="rosa">Ipê Rosa</button>
+      </div>
+    </div>
+    <div>
+      <label for="nome">Nome do paciente</label>
+      <input type="text" id="nome" placeholder="Digite o nome" autocomplete="off">
+    </div>
+    <button class="call-btn" id="callBtn">Avisar</button>
+    <div class="flash" id="flash"></div>
+  </section>
+
+  <section class="history">
+    <div id="teamCard" style="display:none; margin-bottom:22px; padding:16px 18px; border-radius:10px; border:1px solid var(--line); border-left-width:5px; background:var(--paper-raised);">
+      <h2 id="teamCardTitle" style="margin:0 0 10px 0;">Equipe</h2>
+      <div id="teamCardMembers" style="display:flex; flex-direction:column; gap:6px; font-size:14px;"></div>
+    </div>
+    <h2>Histórico de avisos</h2>
+    <div id="historyList"><p class="empty">Nenhuma chamada realizada ainda.</p></div>
+  </section>
+</main>
+
+<script>
+  const STORAGE_KEY = 'cp_codigo_unidade';
+  let codigo = localStorage.getItem(STORAGE_KEY) || 'clinica-01';
+  document.getElementById('codeInput').value = codigo;
+
+
+  // ---- Equipe ----
+  const TEAMS = {
+    padrao:  { label: 'Padrão',      color: null,      textColor: null,    soft: '#B9D8CE', members: null },
+    amarelo: { label: 'Ipê Amarelo', color: '#F4C430',  textColor: '#3A2E00', soft: '#F6E3A8', members: [['Médico','Yelina'],['Enfermeiro','Susana'],['Dentista','Eveline']] },
+    azul:    { label: 'Ipê Azul',    color: '#2F6FED',  textColor: '#FFFFFF', soft: '#2F6FED', members: [['Médico','Ariane'],['Enfermeiro','Alex'],['Dentista','Jader']] },
+    branco:  { label: 'Ipê Branco',  color: '#FFFFFF',  textColor: '#10262A', soft: '#E5E9E8', members: [['Médico','Mayara Valente'],['Enfermeiro','Silvia']] },
+    rosa:    { label: 'Ipê Rosa',    color: '#E85D9E',  textColor: '#FFFFFF', soft: '#F3C6DE', members: [['Médico','Mauro'],['Enfermeiro','Katia'],['Dentista','Mayara Marin']] },
+  };
+  const teamBar = document.getElementById('teamBar');
+  const teamCard = document.getElementById('teamCard');
+  const teamCardTitle = document.getElementById('teamCardTitle');
+  const teamCardMembers = document.getElementById('teamCardMembers');
+  const ipeCanopy = document.getElementById('ipeCanopy');
+
+  function applyTeam(key){
+    const team = TEAMS[key];
+    ipeCanopy.setAttribute('fill', team.soft);
+    document.querySelectorAll('#teamButtons .room-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.team === key);
+      if(b.dataset.team === key && team.color){
+        b.style.background = team.color;
+        b.style.borderColor = (team.color === '#FFFFFF') ? 'var(--ink)' : team.color;
+        b.style.color = team.textColor;
+      } else {
+        b.style.background = '';
+        b.style.borderColor = '';
+        b.style.color = '';
+      }
+    });
+
+    if(key === 'padrao' || !team.members){
+      teamBar.style.background = 'transparent';
+      teamCard.style.display = 'none';
+      return;
+    }
+
+    const barColor = (team.color === '#FFFFFF') ? '#C7CFCE' : team.color;
+    teamBar.style.background = barColor;
+    teamCard.style.display = '';
+    teamCard.style.borderLeftColor = barColor;
+    teamCardTitle.textContent = 'Equipe ' + team.label;
+    teamCardTitle.style.color = (team.color === '#FFFFFF') ? 'var(--ink)' : team.color;
+    teamCardMembers.innerHTML = team.members.map(([cargo, nome])=>
+      `<div><b>${cargo}:</b> ${nome}</div>`
+    ).join('');
+  }
+
+  let equipeAtual = 'padrao';
+  document.querySelectorAll('#teamButtons .room-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ equipeAtual = btn.dataset.team; applyTeam(btn.dataset.team); });
+  });
+
+  const dot = document.getElementById('dot');
+  const statusText = document.getElementById('statusText');
+  function setStatus(state){
+    dot.className = 'dot ' + state;
+    statusText.textContent = state === 'online' ? 'conectado' : state === 'connecting' ? 'conectando…' : 'offline';
+  }
+
+  let socket;
+  let reconnectTimer;
+  function sanitize(c){ return c.toLowerCase().replace(/[^a-z0-9-]/g, '-'); }
+  function topicName(){ return 'chamadorcons-' + sanitize(codigo); }
+
+  let retryDelay = 4000;
+  function connect(){
+    clearTimeout(reconnectTimer);
+    if(socket){ const old = socket; socket = null; try{ old.close(); }catch(e){} }
+    setStatus('connecting');
+    const ws = new WebSocket('wss://ntfy.sh/' + topicName() + '/ws');
+    socket = ws;
+    ws.addEventListener('open', ()=>{ if(socket !== ws) return; retryDelay = 4000; setStatus('online'); });
+    ws.addEventListener('close', ()=>{
+      if(socket !== ws) return; // socket antigo, já substituído: não reconectar
+      setStatus('offline');
+      reconnectTimer = setTimeout(connect, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 60000); // espera cada vez mais, até 60s
+    });
+    ws.addEventListener('error', ()=>{ if(socket === ws) setStatus('offline'); });
+  }
+  connect();
+
+  const gearBtn = document.getElementById('gearBtn');
+  const codeRow = document.getElementById('codeRow');
+  gearBtn.addEventListener('click', ()=> codeRow.classList.toggle('open'));
+
+  document.getElementById('logoutBtn').addEventListener('click', ()=>{
+    sessionStorage.removeItem('cp_auth_chamadoracao');
+    window.location.href = 'index.html';
+  });
+  document.getElementById('codeSave').addEventListener('click', ()=>{
+    const val = document.getElementById('codeInput').value.trim();
+    if(!val) return;
+    codigo = val;
+    localStorage.setItem(STORAGE_KEY, codigo);
+    codeRow.classList.remove('open');
+    flash('Código da unidade salvo: ' + codigo);
+  });
+
+  const flashEl = document.getElementById('flash');
+  let flashTimer;
+  function flash(msg){
+    flashEl.textContent = msg;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(()=> flashEl.textContent = '', 3000);
+  }
+
+  const nomeInput = document.getElementById('nome');
+  const callBtn = document.getElementById('callBtn');
+  const historyList = document.getElementById('historyList');
+  let history = [];
+
+  async function chamar(){
+    const nome = nomeInput.value.trim();
+    if(!nome){ nomeInput.focus(); return; }
+    const equipe = (equipeAtual === 'padrao') ? '' : TEAMS[equipeAtual].label;
+    const payload = { nome, consultorio: '', tipo: 'aviso', equipe, ts: Date.now() };
+    callBtn.disabled = true;
+    try{
+      const resp = await fetch('https://ntfy.sh/' + topicName(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload),
+      });
+      if(!resp.ok){ const err = new Error('falha no envio'); err.status = resp.status; throw err; }
+      flash('Aviso enviado: ' + (equipe ? equipe + ', ' : '') + nome + ' está chegando a sua vez!');
+      history.unshift(payload);
+      history = history.slice(0, 20);
+      renderHistory();
+      nomeInput.value = '';
+      nomeInput.focus();
+    }catch(e){
+      flash(e && e.status === 429 ? 'Limite do servidor de mensagens atingido (erro 429) — pode ser o limite diário do serviço gratuito. Tente de novo mais tarde.' : (e && e.status ? 'Falha ao enviar (erro ' + e.status + ').' : 'Falha ao enviar — verifique sua conexão com a internet.'));
+    }finally{
+      callBtn.disabled = false;
+    }
+  }
+
+  function renderHistory(){
+    if(history.length === 0){
+      historyList.innerHTML = '<p class="empty">Nenhuma chamada realizada ainda.</p>';
+      return;
+    }
+    historyList.innerHTML = history.map(h=>{
+      const d = new Date(h.ts);
+      const time = d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      return `<div class="ticket">
+        <span class="time">${time}</span>
+        <span class="name">${escapeHtml(h.nome)}</span>
+        <span class="room">${escapeHtml(h.equipe || 'AVISO')}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  callBtn.addEventListener('click', chamar);
+  nomeInput.addEventListener('keydown', e=>{ if(e.key === 'Enter') chamar(); });
+</script>
+
+</body>
+</html>

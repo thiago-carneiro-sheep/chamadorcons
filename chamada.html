@@ -131,6 +131,14 @@
   }
   .call.show{display:flex;}
 
+  .team-line{
+    margin-bottom:14px;
+    font-family:'Manrope',sans-serif;
+    font-weight:800;
+    font-size:40px;
+    letter-spacing:.02em;
+    color:var(--ink);
+  }
   .eyebrow{
     margin-top:18px;
     font-family:'JetBrains Mono',monospace;
@@ -251,6 +259,7 @@
   </div>
 
   <div class="call" id="callState">
+    <div class="team-line" id="teamLine" style="display:none;"></div>
     <div class="flap-row" id="flapRow"></div>
     <div class="eyebrow" id="eyebrowText">Dirija-se para</div>
     <div class="room-line" id="roomLine"><b id="roomNum">1</b></div>
@@ -261,7 +270,7 @@
   <h2>Últimas chamadas</h2>
   <div class="board" id="board"><span style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13px;">Nenhuma chamada ainda.</span></div>
   <div style="margin-top:14px; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); opacity:.7;">
-    Versão 1.014 — Desenvolvido e programado por Thiago Carneiro de Oliveira
+    Versão 1.016 — Desenvolvido e programado por Thiago Carneiro de Oliveira
   </div>
 </footer>
 
@@ -403,6 +412,12 @@
   downloadLogBtn.addEventListener('click', downloadLog);
   updateLogStatus();
 
+  const TEAM_DISPLAY_COLORS = {
+    'Ipê Amarelo': '#F4C430',
+    'Ipê Azul':    '#6C9BFF',
+    'Ipê Branco':  '#FFFFFF',
+    'Ipê Rosa':    '#F28BB8',
+  };
   let callQueue = [];
   let isProcessingCall = false;
 
@@ -410,7 +425,9 @@
     const nome = (data.nome || '').toString().trim();
     const room = (data.consultorio || '').toString().trim();
     if(!nome) return;
-    callQueue.push({ nome, room, ts: data.ts || Date.now() });
+    const tipo = (data.tipo || '').toString().trim();
+    const equipe = (data.equipe || '').toString().trim();
+    callQueue.push({ nome, room, tipo, equipe, ts: data.ts || Date.now() });
     processQueue();
   }
 
@@ -418,14 +435,14 @@
     if(isProcessingCall) return; // já tem uma chamada em andamento, aguarda ela terminar
     if(callQueue.length === 0) return;
     isProcessingCall = true;
-    const { nome, room, ts } = callQueue.shift();
-    displayCall(nome, room, ts, ()=>{
+    const { nome, room, ts, tipo, equipe } = callQueue.shift();
+    displayCall(nome, room, ts, tipo, equipe, ()=>{
       isProcessingCall = false;
       processQueue(); // avança pra próxima da fila, se houver
     });
   }
 
-  function displayCall(nome, room, ts, onDone){
+  function displayCall(nome, room, ts, tipo, equipe, onDone){
     idleState.style.display = 'none';
     callState.classList.remove('show');
     void callState.offsetWidth; // reinicia animação
@@ -445,17 +462,41 @@
     roomNum.textContent = room;
     const eyebrowEl = document.getElementById('eyebrowText');
     const roomLineEl = document.getElementById('roomLine');
-    if(room){
-      eyebrowEl.style.display = '';
-      roomLineEl.style.display = '';
+    const aviso = (tipo === 'aviso');
+    const teamLineEl = document.getElementById('teamLine');
+    if(aviso && equipe){
+      teamLineEl.textContent = equipe;
+      teamLineEl.style.color = TEAM_DISPLAY_COLORS[equipe] || '';
+      teamLineEl.style.display = '';
     } else {
-      eyebrowEl.style.display = 'none';
+      teamLineEl.style.display = 'none';
+    }
+    if(aviso){
+      // aviso: "NOME está chegando a sua vez!" (sem sala)
+      eyebrowEl.textContent = 'está chegando a sua vez!';
+      eyebrowEl.style.display = '';
+      eyebrowEl.style.fontSize = '34px';
+      eyebrowEl.style.textTransform = 'none';
+      eyebrowEl.style.letterSpacing = '.04em';
       roomLineEl.style.display = 'none';
+    } else {
+      eyebrowEl.textContent = 'Dirija-se para';
+      eyebrowEl.style.fontSize = '';
+      eyebrowEl.style.textTransform = '';
+      eyebrowEl.style.letterSpacing = '';
+      if(room){
+        eyebrowEl.style.display = '';
+        roomLineEl.style.display = '';
+      } else {
+        eyebrowEl.style.display = 'none';
+        roomLineEl.style.display = 'none';
+      }
     }
 
     playChime();
-    speak(nome, room, room ? 2 : 1, onDone);
+    speak(nome, room, (room || aviso) ? (aviso ? 1 : 2) : 1, onDone, aviso, equipe);
 
+    if(aviso) room = equipe ? ('Aviso · ' + equipe) : 'Aviso';
     calls.unshift({nome, room, ts});
     calls = calls.slice(0, 10);
     renderBoard();
@@ -499,16 +540,18 @@
     }catch(e){}
   }
 
-  function speak(nome, room, repeticoes, onDone){
+  function speak(nome, room, repeticoes, onDone, aviso, equipe){
     if(!('speechSynthesis' in window)){
       // sem suporte a voz: mantém a chamada visível por um tempo mínimo antes de liberar a próxima
       setTimeout(()=>{ if(onDone) onDone(); }, 4000);
       return;
     }
     const reps = repeticoes || 2;
-    const text = room
-      ? `${nome}, dirija-se a ${room}.`
-      : `Senha ${nome}.`;
+    const text = aviso
+      ? `${equipe ? equipe + ', ' : ''}${nome}, está chegando a sua vez!`
+      : (room
+        ? `${nome}, dirija-se a ${room}.`
+        : `Senha ${nome}.`);
     let count = 0;
     function say(){
       if(count >= reps){
