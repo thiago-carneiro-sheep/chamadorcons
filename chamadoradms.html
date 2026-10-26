@@ -181,6 +181,7 @@
     gap:8px;
     align-items:stretch;
   }
+  .guiche-btn{ padding:10px 6px; font-size:13px; }
   .cat-row .room-btn{
     flex:1;
   }
@@ -407,6 +408,16 @@
         </div>
       </div>
     </div>
+    <div id="guicheBlock">
+      <label>Guichê que está chamando</label>
+      <div class="rooms" id="guicheList" style="grid-template-columns:repeat(4,1fr);">
+        <button class="room-btn guiche-btn" data-guiche="Guichê Preferencial" style="grid-column:1 / -1;">Guichê Preferencial</button>
+        <button class="room-btn guiche-btn" data-guiche="Guichê 1">Guichê 1</button>
+        <button class="room-btn guiche-btn" data-guiche="Guichê 2">Guichê 2</button>
+        <button class="room-btn guiche-btn" data-guiche="Guichê 3">Guichê 3</button>
+        <button class="room-btn guiche-btn" data-guiche="Guichê 4">Guichê 4</button>
+      </div>
+    </div>
     <button class="call-btn" id="callBtn">Chamar próxima senha</button>
     <div class="flash" id="flash"></div>
     <button id="resetBtn" style="background:none; border:1px solid var(--line); color:var(--muted); padding:8px; border-radius:8px; font-size:12px; cursor:pointer;">Zerar todos os contadores</button>
@@ -444,6 +455,22 @@
       selectedCategory = btn.dataset.cat;
     });
   });
+
+  // ---- Guichê que está chamando (lembrado neste computador) ----
+  const GUICHE_KEY = 'cp_adm_guiche';
+  let selectedGuiche = localStorage.getItem(GUICHE_KEY) || 'Guichê 1';
+  const guicheButtons = document.querySelectorAll('#guicheList .guiche-btn');
+  function renderGuiche(){
+    guicheButtons.forEach(b=> b.classList.toggle('active', b.dataset.guiche === selectedGuiche));
+  }
+  guicheButtons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedGuiche = btn.dataset.guiche;
+      try{ localStorage.setItem(GUICHE_KEY, selectedGuiche); }catch(e){}
+      renderGuiche();
+    });
+  });
+  renderGuiche();
 
   // ---- Alternância entre modo "senha numerada" e "nome do paciente" ----
   let modo = 'senha'; // 'senha' ou 'nome'
@@ -567,7 +594,7 @@
   async function chamarPorSenha(){
     const proximo = getCount(selectedCategory) + 1;
     const senha = selectedCategory + ' ' + proximo;
-    const payload = { nome: senha, consultorio: '', ts: Date.now() };
+    const payload = { nome: senha, consultorio: '', guiche: selectedGuiche, tipo: 'senha', ts: Date.now() };
     callBtn.disabled = true;
     try{
       const resp = await fetch('https://ntfy.sh/' + topicName(), {
@@ -578,8 +605,8 @@
       if(!resp.ok){ const err = new Error('falha no envio'); err.status = resp.status; throw err; }
       setCount(selectedCategory, proximo);
       renderCounters();
-      flash('Chamada enviada: ' + senha);
-      history.unshift({ nome: senha, consultorio: selectedCategory, ts: payload.ts });
+      flash('Chamada enviada: ' + senha + ' — ' + selectedGuiche);
+      history.unshift({ nome: senha, consultorio: selectedGuiche, ts: payload.ts });
       history = history.slice(0, 20);
       renderHistory();
     }catch(e){
@@ -592,7 +619,7 @@
   async function chamarPorNome(){
     const nome = nomeInput.value.trim();
     if(!nome){ nomeInput.focus(); return; }
-    const destino = 'Recepção';
+    const destino = selectedGuiche;
     const payload = { nome, consultorio: destino, ts: Date.now() };
     callBtn.disabled = true;
     try{
